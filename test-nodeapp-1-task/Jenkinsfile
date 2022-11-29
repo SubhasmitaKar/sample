@@ -1,0 +1,35 @@
+pipeline{
+    agent {label 'worker'}		
+    stages{											
+        stage("Git Pull"){		
+            steps{
+                checkout scm			
+            }
+        }
+        stage("Docker build and Push"){
+            steps{
+				sh "sudo apt-get update -y"
+                sh "docker build -t 306660814053.dkr.ecr.us-east-1.amazonaws.com/assignment:V${BUILD_NUMBER} ./test-nodeapp-1-task"
+				sh "aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 306660814053.dkr.ecr.us-east-1.amazonaws.com"
+				sh "docker push 306660814053.dkr.ecr.us-east-1.amazonaws.com/assignment:V${BUILD_NUMBER}"
+            }
+        }
+		stage("Docker Deploy"){
+			steps{
+				sshagent(['worker']) {
+					sh returnStatus: true, script: 'ssh -o StrictHostKeyChecking=no ubuntu@10.0.4.99 sudo apt install awscli -y'
+				}
+				sshagent(['worker']) {
+					sh returnStatus: true, script: 'ssh -o StrictHostKeyChecking=no ubuntu@10.0.4.99 aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 306660814053.dkr.ecr.us-east-1.amazonaws.com'
+				}
+				sshagent(['worker']) {
+					sh returnStatus: true, script: 'ssh -o StrictHostKeyChecking=no ubuntu@10.0.4.99 docker pull 306660814053.dkr.ecr.us-east-1.amazonaws.com/assignment:V${BUILD_NUMBER}'
+				}
+				sshagent(['worker']) {
+					sh returnStatus: true, script: 'ssh -o StrictHostKeyChecking=no ubuntu@10.0.4.99 docker run -itd -p 8080:8081 306660814053.dkr.ecr.us-east-1.amazonaws.com/assignment:V${BUILD_NUMBER}'
+				}
+			}
+        }	
+    }
+}
+
