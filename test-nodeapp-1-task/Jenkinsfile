@@ -9,7 +9,8 @@ pipeline{
         stage("Docker build and Push"){
             steps{
 				sh "sudo apt-get update -y"
-                sh "docker build -t 306660814053.dkr.ecr.us-east-1.amazonaws.com/assignment:V${BUILD_NUMBER} ./test-nodeapp-1-task"
+		    		sh "sudo apt install awscli -y"
+                		sh "docker build -t 306660814053.dkr.ecr.us-east-1.amazonaws.com/assignment:V${BUILD_NUMBER} ./test-nodeapp-1-task"
 				sh "aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 306660814053.dkr.ecr.us-east-1.amazonaws.com"
 				sh "docker push 306660814053.dkr.ecr.us-east-1.amazonaws.com/assignment:V${BUILD_NUMBER}"
             }
